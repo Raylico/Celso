@@ -27,10 +27,10 @@ connection
         console.log("Conexão feita com sucesso!");
     }).catch((error) => {
         console.log(error);
-    })
+    });
 
 
-app.use("/",categoriesController);    
+app.use("/",categoriesController);
 app.use("/",articlesController);
 
 app.get("/", (req, res) => {
@@ -38,6 +38,6 @@ app.get("/", (req, res) => {
 })
 
 
-app.listen(4000, () => {
+app.listen(5000, () => {
     console.log("O servidor está rodando!")
 })
