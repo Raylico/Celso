@@ -59,48 +59,37 @@ router.post("/categories/delete", (req, res) => {
     }
 });
 
-// Rota para modificar uma categoria
-router.post("/categories/update", (req, res) => {
-    const id = req.body.id;
-    const title = req.body.title;
+//localizar dados para editar 
 
-    if (id !=undefined && !isNaN(id) && title != undefined && title.trim() !== "") {
-        Category.update({
-            title: title,
-            slug: slugify(title)
-        }, 
-        {
-            where: { id: id }
-        }).then(() => {
-            console.log("Categoria atualizada, ID:", id);
-            res.redirect("/admin/categories");
-        }).catch(err => {
-            console.error("Erro ao atualizar categoria:", err);
-            res.redirect("/admin/categories");
-        });
-    } else{
-        res.redirect("/admin/categories");
-    }
-});
-
-// Rota para exibir o formulário de edição de uma categoria
 router.get("/admin/categories/edit/:id", (req, res) => {
-    const id = req.params.id;
+    var id = req.params.id;
 
-    if (!isNaN(id)) {
-        Category.findByPk(id).then(category => {
-            if (category) {
-                res.render("admin/categories/edit", { category });
-            } else {
-                res.redirect("/admin/categories");
-            }
-        }).catch(err => {
-            console.error("Erro ao buscar categoria:", err);
+    Category.findByPk(id).then(category => {
+        if (category != undefined) {
+            res.render("admin/categories/edit", { category: category });
+        } else {
             res.redirect("/admin/categories");
-        });
-    } else {
+        }
+    }).catch(err => {
         res.redirect("/admin/categories");
-    }
-});
+    })
+})
+
+//salvar edição
+router.post("/categories/update", (req, res) => {
+    var id = req.body.id;
+    var title = req.body.title;
+
+    Category.update({
+        title: title,
+        slug: slugify(title)
+    },{
+        where: {
+            id: id
+        }
+    }).then(() => {
+        res.redirect("/admin/categories");
+    })
+})
 
 module.exports = router;
