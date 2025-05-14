@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Category = require("./Category");
 const slugify = require("slugify");
+const Article = require("../articles/Articles"); 
 
 // Rota para formulário de nova categoria
 router.get("/admin/categories/new", (req, res) => {
@@ -59,7 +60,7 @@ router.post("/categories/delete", (req, res) => {
     }
 });
 
-//localizar dados para editar 
+//localizar dados para editar
 
 router.get("/admin/categories/edit/:id", (req, res) => {
     var id = req.params.id;
@@ -91,5 +92,6 @@ router.post("/categories/update", (req, res) => {
         res.redirect("/admin/categories");
     })
 })
+
 
 module.exports = router;
