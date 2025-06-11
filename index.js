@@ -1,93 +1,130 @@
-const express = require("express");
+const express = require ("express");
 const app = express();
-const bodyParser = require("body-parser");
-const connection = require("./database/database");
+const bodyParser = require("body-parser")
+const session = require("express-session");
+const connection = require("./database/database")
 
 const categoriesController = require("./categories/CategoriesController");
 const articlesController = require("./articles/ArticlesController");
+const UsersController = require("./users/UsersController");
 
-const Article = require("./articles/Articles");
+const Article = require("./articles/Articles")
 const Category = require("./categories/Category");
+const { where } = require("sequelize");
+const User = require("./users/Users")
 
-// View engine
+// view engine
 app.set('view engine', 'ejs');
 
-// Static files
+//session
+app.set(session({
+    secret: "textoaleatorio", cookie: {maxAge: 30000}
+}))
+
+//static
 app.use(express.static('public'));
 
-// Body parser
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
 
-// ✅ Middleware global para carregar categorias
-app.use((req, res, next) => {
-    Category.findAll()
-        .then(categories => {
-            res.locals.categories = categories;
-            next();
-        })
-        .catch(err => {
-            console.error("Erro ao carregar categorias no middleware:", err);
-            res.locals.categories = [];
-            next();
-        });
-});
+//body parser
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json())
 
-// Database
+//Database
 connection
     .authenticate()
     .then(() => {
-        console.log('Conexão feita com sucesso');
-    })
-    .catch(error => {
+        console.log('conexão feita com sucesso');
+    }).catch((error) => {
         console.log(error);
-    });
+    })
 
-// Controllers
+    app.use(async (req, res, next) => {
+        try {
+            const categories = await Category.findAll();
+            res.locals.categories = categories;
+            next();
+        } catch (err) {
+            console.log("Erro ao carregar as categorias:", err);
+            next(); //continua mesmo de der erro
+        }
+    })
 app.use("/", categoriesController);
 app.use("/", articlesController);
+app.use("/", UsersController);
 
-// Rotas
-app.get("/", (req, res) => {
+app.get("/session", (req, res) => {
+    req.session.treinamento = "Curso de Node.js";
+    req.session.ano = 2025;
+    req.session.email= "Celso@gmail.com";
+    req.session.user = {
+        username: "Rayssa",
+        email: "Celso@gmail.com",
+        id: 10,
+    }
+})
+
+app.get("/leitura", (res, req) => {
+    res.json({
+        treinamento:req.session.treinamento,
+        ano: req.session.ano,
+        email: req.session.email,
+        user: req.session.user        
+    })
+})
+
+app.get("/", (req,res) => {
     Article.findAll({
-        order: [['id', 'DESC']]
+        order:[
+            ['id', 'DESC']
+        ]
     }).then(articles => {
-        res.render("index", { articles });
+        Category.findAll().then(categories => {
+            res.render("index", {articles: articles, categories: categories})
+        });
     });
-});
+})
 
-app.get("/:slug", (req, res) => {
-    const slug = req.params.slug;
+app.get("/:slug", (req,res) => {
+    var slug = req.params.slug;
     Article.findOne({
-        where: { slug }
+        where : {
+            slug: slug
+        }
     }).then(article => {
-        if (article) {
-            res.render("article", { article });
-        } else {
+        if(article != undefined){
+            Category.findAll().then(categories => {
+                res.render("index", {articles: [article], categories: categories});
+            });
+        }else{
             res.redirect("/");
         }
     }).catch(err => {
         res.redirect("/");
     });
-});
+})
 
 app.get("/category/:slug", (req, res) => {
-    const slug = req.params.slug;
+    var slug = req.params.slug;
     Category.findOne({
-        where: { slug },
-        include: [{ model: Article }]
-    }).then(category => {
-        if (category) {
-            res.render("index", { articles: category.articles });
-        } else {
-            res.redirect("/");
-        }
-    }).catch(err => {
-        res.redirect("/");
-    });
-});
+        where: {
+            slug: slug
+        },
+        include: [{model: Article}]
+    }).then( category => {
+        if(category != undefined){
 
-// Iniciar servidor
+            Category.findAll().then(categories => {
+                res.render("index", {articles: category.articles, categories: categories});
+            });
+    }else{
+        res.redirect("/");
+    }
+    }).catch( err => {
+    res.redirect("/");
+    })
+})
+
+
 app.listen(5000, () => {
-    console.log("O servidor está rodando!");
-});
+    console.log("o servidor está rodando")
+})

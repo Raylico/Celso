@@ -7,9 +7,14 @@ const slugify = require("slugify");
 // Listar todos os artigos
 router.get("/admin/articles", (req, res) => {
     Article.findAll({
-        include: [{model: Category}]
+        include: [{ model: Category }]
     }).then(articles => {
-        res.render("admin/articles/index", { articles });
+        Category.findAll().then(categories => { // Busque todas as categorias
+            res.render("admin/articles/index", { articles: articles, categories: categories }); // Passe as categorias para a view
+        }).catch(err => {
+            console.error("Erro ao buscar categorias para a listagem de artigos:", err);
+            res.render("admin/articles/index", { articles: articles, categories: [] }); // Em caso de erro, passe um array vazio
+        });
     }).catch(err => {
         console.error("Erro ao buscar artigos:", err);
         res.redirect("/");
@@ -26,11 +31,11 @@ router.get("/admin/articles/new", (req, res) => {
     });
 });
 
-// Salvar artigo no banco
+// Salvar artigo no banco (CORRIGIDO)
 router.post("/articles/save", (req, res) => {
     const { title, body, category } = req.body;
 
-    console.log("Dados recebidos:", title, body, category); // depuração
+    console.log("Dados recebidos:", title, body, category);
 
     if (title && body && category) {
         Article.create({
@@ -49,16 +54,15 @@ router.post("/articles/save", (req, res) => {
     }
 });
 
-
-// Rota para deletar uma categoria
+// Deletar artigo
 router.post("/articles/delete", (req, res) => {
-    var id = req.body.id;
+    const id = req.body.id;
 
-    if (id != undefined && !isNaN(id)) {
+    if (id !== undefined && !isNaN(id)) {
         Article.destroy({
             where: { id: id }
         }).then(() => {
-            console.log("Artigo deletad0, ID:", id);
+            console.log("Artigo deletado, ID:", id);
             res.redirect("/admin/articles");
         }).catch(err => {
             console.error("Erro ao deletar artigo:", err);
@@ -69,38 +73,65 @@ router.post("/articles/delete", (req, res) => {
     }
 });
 
-// localizar dados para editar
+// Editar artigo (pegar dados para edição)
 router.get("/admin/articles/edit/:id", (req, res) => {
-    var id = req.params.id;
+    const id = req.params.id;
 
-    Article.findByPk(id).then(article => {
+    Article.findByPk(id, {
+        include: [{ model: Category }]
+    }).then(article => {
         if (article != undefined) {
-            res.render("admin/articles/edit", { article: article });
+            Category.findAll().then(categories => {
+                res.render("admin/articles/edit", {
+                    article: article,
+                    categories: categories
+                });
+            });
         } else {
             res.redirect("/admin/articles");
         }
     }).catch(err => {
+        console.error("Erro ao carregar artigo:", err);
         res.redirect("/admin/articles");
     });
 });
 
-// salvar edição
+// Atualizar artigo
 router.post("/articles/update", (req, res) => {
-    var id = req.body.id;
-    var title = req.body.title;
+    const { id, title, body, category } = req.body;
 
     Article.update({
         title: title,
-        slug: slugify(title)
+        slug: slugify(title),
+        body: body,
+        categoryId: category
     }, {
-        where: {
-            id: id
-        }
+        where: { id: id }
     }).then(() => {
         res.redirect("/admin/articles");
     }).catch(err => {
+        console.error("Erro ao atualizar artigo:", err);
         res.redirect("/admin/articles");
     });
 });
 
+    router.get("/articles/edit/:id", (req, res) => {
+        var id = req.params.id;
+        Article.findByPk(id).then(article => {
+            if(article !=undefined){
+
+                Category.findAll().then(categories => {
+                    res.render("admin/articles/edit")
+                });
+                
+        }else{
+            res.redirect("/");
+        }
+        
+        }).catch(err => {
+            res.redirect("/");
+        });
+
+    });
+        
 module.exports = router;
